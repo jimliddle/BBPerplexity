@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"">
+    <title>BB Perplexity</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-size: 14px;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 10px;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #000000;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #headerSection {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .key-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .key-indicator.active {
+            background: #4caf50;
+        }
+        .reset-link {
+            color: #ff6b6b;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        #apiKey {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #2a2a2a;
+            color: #ffffff;
+            margin-top: 5px;
+        }
+        #mainContainer {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(255, 255, 255, 0.1);
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #messageHistory {
+            flex-grow: 0;
+            height: 60vh;
+            overflow-y: auto;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            background: #2a2a2a;
+            margin-bottom: 10px;
+        }
+        #inputSection {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+        #inputRow {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+        #userInput {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #2a2a2a;
+            color: #ffffff;
+            height: 40px;
+            font-size: 14px;
+
+        }
+        #sendButton {
+            background-color: #4a9eff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            min-width: 70px;
+            height: 40px;
+        }
+        #sendButton:disabled {
+            background-color: #666;
+        }
+        #actionLinks {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+            font-size: 12px;
+        }
+        .action-link {
+            color: #2196f3;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .action-link.delete {
+            color: #f44336;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            position: relative;
+            word-wrap: break-word;
+        }
+        .message p {
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        .message:hover .copy-btn {
+            display: block;
+        }
+        .user-message {
+            background: #333333;
+            margin-left: 20px;
+        }
+        .assistant-message {
+            background: #404040;
+            margin-right: 20px;
+            padding: 12px;
+        }
+        .citation {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #333;
+        }
+        .citation-link {
+            display: inline-block;
+            padding: 6px 2px;
+            color: #4a9eff;
+            text-decoration: underline;
+            word-break: break-all;
+        }
+        .citation-link:active {
+            background-color: rgba(74, 158, 255, 0.1);
+        }
+        .copy-btn {
+            display: none;
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            padding: 4px 8px;
+            background: rgba(74, 158, 255, 0.8);
+            color: white;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .loading #mainContainer {
+            opacity: 0.6;
+        }
+        #loadingIndicator {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+        .loading #loadingIndicator {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="headerSection">
+        <div class="status-row">
+            <div>
+                <span class="key-indicator" id="keyIndicator"></span>
+                <span>Perplexity API Key</span>
+            </div>
+            <span class="reset-link" onclick="resetKey()">Reset Key</span>
+        </div>
+        <input type="password" id="apiKey" placeholder="Enter your Perplexity API key" 
+               onclick="this.select();"
+               onkeyup="handleKeyPress(event)"
+               style="display: block;">
+    </div>
+    
+    <div id="mainContainer">
+        <div id="messageHistory"></div>
+        <div id="inputSection">
+            <div id="inputRow">
+                <input type="text" id="userInput" 
+                       placeholder="Ask your question..." 
+                       onclick="this.select();"
+                       onkeyup="if((event.key === 'Enter' || event.keyCode === 13) && !event.shiftKey) { sendMessage(); }">
+                <button id="sendButton" onclick="sendMessage()">Send</button>
+            </div>
+            <div id="actionLinks">
+                <a class="action-link delete" onclick="clearAllMessages()">Clear all messages</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingIndicator">Sending message...</div>
+    <script>
+        var conversationHistory = [];
+
+        // Storage configuration with namespaced keys
+        const STORAGE_KEYS = {
+            API_KEY: 'bbperplexity_api_key',
+            CHAT_HISTORY: 'bbperplexity_chat_history'
+        };
+
+        // Direct storage functions for BlackBerry compatibility
+        function setStorageItem(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (e) {
+                document.cookie = key + '=' + encodeURIComponent(value) + ';path=/';
+                return true;
+            }
+        }
+
+        function getStorageItem(key) {
+            try {
+                return localStorage.getItem(key);
+            } catch (e) {
+                var match = document.cookie.match(new RegExp(key + '=([^;]+)'));
+                return match ? decodeURIComponent(match[1]) : null;
+            }
+        }
+
+        function removeStorageItem(key) {
+            try {
+                localStorage.removeItem(key);
+            } catch (e) {}
+            document.cookie = key + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+        }
+
+        // Modified key handling functions
+        function resetKey() {
+            if(confirm('Reset API key?')) {
+                removeStorageItem(STORAGE_KEYS.API_KEY);
+                document.getElementById('apiKey').style.display = 'block';
+                document.getElementById('apiKey').value = '';
+                document.getElementById('keyIndicator').className = 'key-indicator';
+            }
+        }
+
+        function handleKeyPress(event) {
+            if(event.keyCode === 13 || event.key === 'Enter') {
+                var key = document.getElementById('apiKey').value.trim();
+                if(key) {
+                    setStorageItem(STORAGE_KEYS.API_KEY, key);
+                    document.getElementById('keyIndicator').className = 'key-indicator active';
+                    document.getElementById('apiKey').style.display = 'none';
+                }
+            }
+        }
+
+        // Initial setup for key visibility
+        window.onload = function() {
+            var key = getStorageItem(STORAGE_KEYS.API_KEY);
+            if(key) {
+                document.getElementById('apiKey').style.display = 'none';
+                document.getElementById('keyIndicator').className = 'key-indicator active';
+            } else {
+                document.getElementById('apiKey').style.display = 'block';
+                document.getElementById('keyIndicator').className = 'key-indicator';
+            }
+            
+            // Load existing messages
+            try {
+                var saved = getStorageItem(STORAGE_KEYS.CHAT_HISTORY);
+                if(saved) {
+                    conversationHistory = JSON.parse(saved);
+                    conversationHistory.forEach(function(msg) {
+                        displayMessage(msg.role, msg.content, msg.citations);
+                    });
+                }
+            } catch(e) {
+                addStatusMessage('Error loading message history');
+                removeStorageItem(STORAGE_KEYS.CHAT_HISTORY);
+                conversationHistory = [];
+            }
+        };
+
+        function addStatusMessage(text) {
+            var messageHistory = document.getElementById('messageHistory');
+            var messageDiv = document.createElement('div');
+            messageDiv.className = 'message status-message';
+            messageDiv.textContent = text;
+            messageHistory.appendChild(messageDiv);
+            messageHistory.scrollTop = messageHistory.scrollHeight;
+        }
+
+        function displayMessage(role, content, citations) {
+            var messageHistory = document.getElementById('messageHistory');
+            var messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + role + '-message';
+
+            var copyButton = document.createElement('button');
+            copyButton.className = 'copy-btn';
+            copyButton.textContent = 'Copy';
+            copyButton.onclick = function() { copyText(content); };
+            messageDiv.appendChild(copyButton);
+
+            var contentDiv = document.createElement('div');
+            
+            if (role === 'assistant') {
+                var sections = content.split(/(?=\*\*)/);
+                sections.forEach(function(section) {
+                    var text = section.trim();
+                    if (text && !text.match(/^\*\*:\s*-\s*$/)) {
+                        var p = document.createElement('p');
+                        p.style.marginBottom = '10px';
+                        text = text.replace(/:\s*-\s*$/, '');
+                        p.textContent = text;
+                        contentDiv.appendChild(p);
+                    }
+                });
+            } else {
+                contentDiv.textContent = content;
+            }
+            
+            messageDiv.appendChild(contentDiv);
+
+            if (citations && citations.length > 0) {
+                var refsDiv = document.createElement('div');
+                refsDiv.className = 'citation';
+                
+                var sourcesText = document.createTextNode('Sources:');
+                refsDiv.appendChild(sourcesText);
+                refsDiv.appendChild(document.createElement('br'));
+
+                for (var i = 0; i < citations.length; i++) {
+                    var link = document.createElement('a');
+                    link.href = citations[i].url;
+                    link.target = '_blank';
+                    link.className = 'citation-link';
+                    link.textContent = '[' + (i + 1) + '] ' + citations[i].url;
+                    refsDiv.appendChild(link);
+                    refsDiv.appendChild(document.createElement('br'));
+                }
+                
+                messageDiv.appendChild(refsDiv);
+            }
+
+            messageHistory.appendChild(messageDiv);
+            messageHistory.scrollTop = messageHistory.scrollHeight;
+
+            conversationHistory.push({role: role, content: content, citations: citations});
+            try {
+                setStorageItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(conversationHistory));
+            } catch(e) {
+                addStatusMessage('Error saving messages - clearing old messages');
+                conversationHistory = conversationHistory.slice(-10);
+                setStorageItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(conversationHistory));
+            }
+        }
+
+        function copyText(text) {
+            var textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.top = '-9999px';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            
+            try {
+                textArea.focus();
+                textArea.select();
+                var successful = document.execCommand('copy');
+                if (successful) {
+                    addStatusMessage('Messages copied successfully');
+                } else {
+                    addStatusMessage('Copy operation failed');
+                }
+            } catch(err) {
+                addStatusMessage('Unable to copy messages');
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function clearAllMessages() {
+            if (confirm('Are you sure you want to clear all messages?')) {
+                conversationHistory = [];
+                document.getElementById('messageHistory').innerHTML = '';
+                removeStorageItem(STORAGE_KEYS.CHAT_HISTORY);
+            }
+        }
+
+        function sendMessage() {
+            var userInput = document.getElementById('userInput');
+            var apiKey = document.getElementById('apiKey').value || getStorageItem(STORAGE_KEYS.API_KEY);
+            var sendButton = document.getElementById('sendButton');
+
+            if (!apiKey) {
+                alert('Please enter your API key');
+                document.getElementById('apiKey').focus();
+                return;
+            }
+
+            if (!userInput.value.trim()) return;
+
+            var userMessage = userInput.value.trim();
+            displayMessage('user', userMessage);
+            userInput.value = '';
+
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            document.body.classList.add('loading');
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://api.perplexity.ai/chat/completions', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('Authorization', 'Bearer ' + apiKey);
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        var response = JSON.parse(xhr.responseText);
+                        var content = response.choices[0].message.content;
+                        var citations = (response.citations || []).map(function(url, index) {
+                            return {
+                                url: url,
+                                title: 'Source ' + (index + 1)
+                            };
+                        });
+                        
+                        displayMessage('assistant', content, citations);
+                    } else {
+                        var errorMsg = 'Error: ';
+                        try {
+                            var error = JSON.parse(xhr.responseText);
+                            errorMsg += error.error.message;
+                        } catch(e) {
+                            errorMsg += 'Failed to send message';
+                        }
+                        addStatusMessage(errorMsg);
+                    }
+                    userInput.disabled = false;
+                    sendButton.disabled = false;
+                    document.body.classList.remove('loading');
+                    userInput.focus();
+                }
+            };
+
+            xhr.onerror = function() {
+                addStatusMessage('Network error occurred');
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                document.body.classList.remove('loading');
+                userInput.focus();
+            };
+
+            xhr.send(JSON.stringify({
+                model: "llama-3.1-sonar-small-128k-online",
+                messages: [
+                    { role: "system", content: "Be precise and concise." }
+                ].concat(conversationHistory)
+            }));
+        }
+    </script>
+</body>
+</html>
